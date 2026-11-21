@@ -39,8 +39,8 @@ def must_close_for_weekend(utc_dt):
         return True
     return False
 
-def run_modular_engine():
-    df, source_name = fetch_market_data()
+def run_modular_engine(custom_file_path="data/XAUUSD_M15_202501020100_202611202345.csv"):
+    df, source_name = fetch_market_data(custom_file_path=custom_file_path)
     df = compute_all_features(df)
     df = fetch_macro_oi_and_dxy(df)
 
