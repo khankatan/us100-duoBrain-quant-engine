@@ -91,7 +91,8 @@ class RiskGuard:
         if "FLIP-" in agent_tag:
             base = 0.70
         elif "GAP-" in agent_tag:
-            base = 0.12 if (is_crisis_vol or move_from_open_atr > 4.5 or utc_hour >= 17) else 0.30
+            # ไม้เช็กชื่อ (Micro-Lot Attendance): คงความเสี่ยงต่ำ 0.10% เพื่อออกไม้ครบทุกวันโดยไม่ดึงพอร์ต
+            base = 0.10
         else:
             if self.consecutive_losses >= 2:
                 base = 0.40
