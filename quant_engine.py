@@ -94,7 +94,7 @@ def run_modular_engine():
         guard.on_new_bar(bar_date)
 
         friday_close_now = must_close_for_weekend(dt)
-        daily_rollover_now = (int(bar["thai_hour"]) == 3 and int(bar["thai_minute"]) >= 0)
+        daily_rollover_now = (int(bar["true_utc"]) == 3 and int(bar["true_utc"]) >= 0)
         is_late_night = (t_mins >= 23 * 60 + 30) or (t_mins < 3 * 60)
 
         if pos is not None:
