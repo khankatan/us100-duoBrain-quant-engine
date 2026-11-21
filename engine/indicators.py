@@ -106,7 +106,7 @@ def compute_all_features(df):
         kijun_arr[i] = 0.5 * (np.max(high_arr[i - k_len + 1 : i + 1]) + np.min(low_arr[i - k_len + 1 : i + 1]))
 
     # ชดเชยค่า CHOP ที่เฟ้อจากไส้เทียน FTMO (+2.5 จุด) ให้เทียบเท่าฐาน TwelveData
-    d["chop"] = np.clip(chop_arr - 2.5, 0.0, 100.0)
+    d["chop"] = chop_arr
     d["er"] = er_arr
     d["struct_high"] = struct_high_arr
     d["struct_low"] = struct_low_arr
