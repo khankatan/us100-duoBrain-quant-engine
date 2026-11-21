@@ -18,14 +18,14 @@ VWRSI_LEN = 14
 H1_EMA_LEN = 34
 
 SL_ATR_MULT = 2.0             
-TP_ATR_MULT = 3.0             
+TP_ATR_MULT = 3.5             
 BE_TRIGGER_R = 1.15           
 PARTIAL_TP_RATIO = 0.50       
 BE_BUFFER_ATR = 0.08          
 LATE_BE_TRIGGER_R = 0.65      
 
 # --- เพิ่มกฎข้อ 4: Step-Lock Trailing ---
-STEP_LOCK_TRIGGER_R = 1.5     # เมื่อราคาวิ่งไปถึง 1.5R ขยับ SL ล็อกกำไรที่ TP1 (1.15R) ทันที
+STEP_LOCK_TRIGGER_R = 1.25     # เมื่อราคาวิ่งไปถึง 1.5R ขยับ SL ล็อกกำไรที่ TP1 (1.15R) ทันที
 STEP_LOCK_LOCK_R = 1.15       # ล็อกกำไรไว้ที่ระดับ TP1
 
 # --- เพิ่มกฎข้อ 3: NY Session Fallback Window (13:00 - 16:30 UTC) ---
