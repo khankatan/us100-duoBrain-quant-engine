@@ -76,7 +76,6 @@ def fetch_market_data(custom_file_path=None):
     """บังคับโหลดข้อมูลจากไฟล์ .zip เท่านั้น (ปิดการเชื่อมต่อ TwelveData / Yahoo 100%)"""
     target_path = custom_file_path
 
-    # หากไม่ได้ระบุชื่อไฟล์ หรือหาตามชื่อที่ระบุไม่เจอ ให้ค้นหาไฟล์ .zip ในโฟลเดอร์ data/ อัตโนมัติ
     if not target_path or not os.path.exists(target_path):
         zip_files = glob.glob("data/*.zip")
         if zip_files:
