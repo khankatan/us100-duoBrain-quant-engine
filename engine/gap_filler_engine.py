@@ -25,7 +25,7 @@ def evaluate_gap_filler(bar, prev, trades_today=0, lon_open=None, lon_close=None
                 return "BUY", "FLIP-SESSION"
 
     # 2. GAP-DAILY (23:15 - 00:45 TH): เก็บตกวันที่ยังไม่มีไม้
-    if trades_today == 0 and (16 * 60 + 15) <= utc_mins <= (16 * 60 + 45):
+    if trades_today == 0 and (16 * 60 + 15) <= utc_mins <= (17 * 60 + 45):
         if atr_val > 11.5:
             if bull_oi and h1_bull and close_p > open_p:
                 return "BUY", "GAP-DAILY"
