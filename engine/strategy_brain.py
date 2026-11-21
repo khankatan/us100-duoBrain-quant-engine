@@ -35,12 +35,11 @@ def evaluate_signals(bar, prev, asian_high, asian_low, asian_bars, trades_today=
 
     has_oi = bool(info.get("has_macro_expansion", False))
     is_dead_zone_utc = (5 <= utc_hour <= 7) or (utc_hour == 12)
-    is_crisis_vol = (atr_val > 11.5)
+    is_crisis_vol = (atr_val > 12.4)
     chop_v = float(info.get("chop", 50.0))
 
     # 1. โหมดรสหวาน (SWEET)
     if flavor == "SWEET":
-        # บล็อกชั่วโมง Pre-London / London Open Trap (06:00-07:59 UTC / 13:00-14:59 TH) เด็ดขาดแม้มี +OI (Win Rate 0%)
         if utc_hour in [6, 8]:
             return None, ""
         if is_dead_zone_utc and not has_oi:
@@ -90,7 +89,7 @@ def evaluate_signals(bar, prev, asian_high, asian_low, asian_bars, trades_today=
                 if pulled_bear_tk:
                     return "SELL", "SWEET-TK"
 
-    # 2. โหมดรสเปรี้ยว (SOUR): ป้องกันการดักสวน Super-Trend (CHOP < 40.5) หรือวันที่วิ่งมาแล้วเกิน 5.5 ATR
+    # 2. โหมดรสเปรี้ยว (SOUR)
     if flavor == "SOUR":
         move_open = abs(close_p - day_open) / atr_val if (day_open is not None and atr_val > 0) else 0.0
         if (chop_v >= 40.5) and (move_open <= 5.5) and ((not is_crisis_vol) or has_oi):
@@ -106,7 +105,7 @@ def evaluate_signals(bar, prev, asian_high, asian_low, asian_bars, trades_today=
                 if info["swept_high"] and h4_bear and (close_p < open_p) and (vwrsi_v < prev_rsi) and (48 <= vwrsi_v <= 68):
                     return "SELL", "SOUR-TRAP"
 
-    # 3. โหมดรสเค็ม (SALTY)
+    # 3. โหมดรสเค็ม (SALTY): เข้าเฉพาะชั่วโมงที่มี Edge (ตัด 07:00-13:59 ออก)
     if flavor == "SALTY":
         if (not is_crisis_vol) and (utc_hour in [2, 3, 4, 5, 14]):
             if h4_bull and (info["prev_z"] <= -1.55) and (close_p > open_p) and (vwrsi_v > prev_rsi) and (vwrsi_v <= 45):
