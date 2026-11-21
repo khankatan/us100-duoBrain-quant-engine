@@ -295,7 +295,7 @@ def run_modular_engine():
         "ROLLOVER": agent_stats(["FLIP-", "GAP-", "Rollover", "Weekend-Close", "Wknd"])
     }
 
-    strategy_names = ["SWEET-VWAP", "SWEET-TK", "SOUR-TRAP", "SALTY-MR", "FLIP-SESSION", "GAP-DAILY"]
+    strategy_names = ["SWEET-VWAP", "SOUR-TRAP", "SALTY-MR", "FLIP-SESSION", "GAP-DAILY"]
     strategies_breakdown = {
         name: calc_group_stats([t for t in closed_trades if t.get("agent") == name])
         for name in strategy_names
