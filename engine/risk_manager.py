@@ -91,7 +91,7 @@ class RiskGuard:
         if "FLIP-" in agent_tag:
             base = 0.70  # คง Risk เต็ม 0.70% แม้ ATR สูง เพราะ FLIP-SESSION ทำผลงานได้ยอดเยี่ยม
         elif "GAP-" in agent_tag:
-            base = 0.12 if (is_crisis_vol or move_from_open_atr > 4.5) else 0.30
+            base = 0.12 if (is_crisis_vol or move_from_open_atr > 4.5 or utc_hour >= 17) else 0.30
         else:
             if self.consecutive_losses >= 2:
                 base = 0.40
