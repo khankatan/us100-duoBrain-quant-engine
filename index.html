@@ -15,7 +15,6 @@
       --green: #10b981;
       --red: #ef4444;
       --gold: #f59e0b;
-      --blue: #3b82f6;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
@@ -45,9 +44,21 @@
     .kpi-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
     .kpi-val { font-size: 1.45rem; font-weight: 700; }
 
-    /* Section */
+    /* Sections */
     .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 18px; margin-bottom: 22px; }
-    .section-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 12px; color: var(--gold); }
+    .section-header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 10px; margin-bottom: 14px;
+    }
+    .section-title { font-size: 1.05rem; font-weight: 700; color: var(--gold); }
+
+    /* Monthly Summary Pills */
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.82rem; }
+    .pill {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 999px; color: var(--muted);
+    }
+    .pill strong { color: var(--text); }
 
     /* Tables */
     .table-wrap { overflow-x: auto; }
@@ -65,7 +76,7 @@
 
     .pos { color: var(--green); font-weight: 600; }
     .neg { color: var(--red); font-weight: 600; }
-    .chart-box { position: relative; height: 320px; margin-bottom: 16px; }
+    .chart-box { position: relative; height: 380px; width: 100%; }
   </style>
 </head>
 <body>
@@ -94,7 +105,9 @@
     <!-- Strategy & Market Regime Breakdown -->
     <div class="grid-2">
       <div class="card">
-        <div class="section-title">1. ผลการเทรดรายกลยุทธ์ (Strategy Breakdown)</div>
+        <div class="section-header">
+          <div class="section-title">1. ผลการเทรดรายกลยุทธ์ (Strategy Breakdown)</div>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -106,7 +119,9 @@
       </div>
 
       <div class="card">
-        <div class="section-title">2. ผลการเทรดตามสภาวะตลาด (Market Regime)</div>
+        <div class="section-header">
+          <div class="section-title">2. ผลการเทรดตามสภาวะตลาด (Market Regime)</div>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -118,19 +133,14 @@
       </div>
     </div>
 
-    <!-- Monthly PnL -->
+    <!-- Monthly PnL Chart Only -->
     <div class="card">
-      <div class="section-title">3. กำไร / ขาดทุนรายเดือน (Monthly PnL)</div>
+      <div class="section-header">
+        <div class="section-title">3. กราฟกำไร / ขาดทุนรายเดือน (Monthly PnL)</div>
+        <div class="pill-row" id="monthlyPills"></div>
+      </div>
       <div class="chart-box">
         <canvas id="monthlyChart"></canvas>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>เดือน</th><th>จำนวนไม้</th><th>Win Rate</th><th>Profit Factor</th><th>กำไร/ขาดทุน ($)</th></tr>
-          </thead>
-          <tbody id="monthlyBody"></tbody>
-        </table>
       </div>
     </div>
   </div>
@@ -192,39 +202,71 @@
           `;
         }).join('');
 
-        // 3. Monthly Chart & Table
+        // 3. Monthly Chart & Summary Pills
         const monthly = bt.monthly_pnl || [];
-        document.getElementById('monthlyBody').innerHTML = monthly.slice().reverse().map((m) => `
-          <tr>
-            <td><strong>${m.month}</strong></td>
-            <td>${m.trades}</td>
-            <td>${m.win_rate.toFixed(1)}%</td>
-            <td>${m.pf.toFixed(2)}</td>
-            <td class="${clsPnL(m.net_pnl)}">${fmtUSD(m.net_pnl)}</td>
-          </tr>
-        `).join('');
+        if (monthly.length > 0) {
+          const winMonths = monthly.filter(m => m.net_pnl > 0).length;
+          const best = monthly.reduce((a, b) => (b.net_pnl > a.net_pnl ? b : a), monthly[0]);
+          const worst = monthly.reduce((a, b) => (b.net_pnl < a.net_pnl ? b : a), monthly[0]);
 
-        new Chart(document.getElementById('monthlyChart'), {
-          type: 'bar',
-          data: {
-            labels: monthly.map(m => m.month),
-            datasets: [{
-              label: 'กำไร/ขาดทุนรายเดือน ($)',
-              data: monthly.map(m => m.net_pnl),
-              backgroundColor: monthly.map(m => m.net_pnl >= 0 ? '#10b981' : '#ef4444'),
-              borderRadius: 5
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { ticks: { color: '#8fb0d9' }, grid: { display: false } },
-              y: { ticks: { color: '#8fb0d9', callback: v => '$' + v.toLocaleString() }, grid: { color: '#1e355e' } }
+          document.getElementById('monthlyPills').innerHTML = `
+            <span class="pill">เดือนที่บวก: <strong>${winMonths} / ${monthly.length} เดือน</strong></span>
+            <span class="pill">เดือนดีสุด: <strong class="pos">${best.month} (${fmtUSD(best.net_pnl)})</strong></span>
+            <span class="pill">เดือนแย่สุด: <strong class="neg">${worst.month} (${fmtUSD(worst.net_pnl)})</strong></span>
+          `;
+
+          new Chart(document.getElementById('monthlyChart'), {
+            type: 'bar',
+            data: {
+              labels: monthly.map(m => m.month),
+              datasets: [{
+                label: 'กำไร/ขาดทุน ($)',
+                data: monthly.map(m => m.net_pnl),
+                backgroundColor: monthly.map(m => m.net_pnl >= 0 ? 'rgba(16, 185, 129, 0.85)' : 'rgba(239, 68, 68, 0.85)'),
+                borderColor: monthly.map(m => m.net_pnl >= 0 ? '#10b981' : '#ef4444'),
+                borderWidth: 1,
+                borderRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: '#0f1d36',
+                  borderColor: '#1e355e',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: (ctx) => {
+                      const m = monthly[ctx.dataIndex];
+                      return [
+                        ` กำไร/ขาดทุน: ${fmtUSD(m.net_pnl)}`,
+                        ` จำนวนไม้: ${m.trades} ไม้`,
+                        ` Win Rate: ${m.win_rate.toFixed(1)}%`,
+                        ` Profit Factor: ${m.pf.toFixed(2)}`
+                      ];
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#8fb0d9', font: { size: 11 } },
+                  grid: { display: false }
+                },
+                y: {
+                  ticks: {
+                    color: '#8fb0d9',
+                    callback: (v) => (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString()
+                  },
+                  grid: { color: '#1e355e' }
+                }
+              }
             }
-          }
-        });
+          });
+        }
       } catch (err) {
         document.getElementById('metaInfo').textContent = 'ไม่สามารถโหลด data/state.json ได้: ' + err.message;
       }
