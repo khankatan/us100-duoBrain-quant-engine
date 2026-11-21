@@ -164,6 +164,7 @@ def run_modular_engine():
                         "entry_str": pos["entry_str"], "exit_str": dt.strftime("%Y-%m-%d %H:%M"),
                         "entry_time": pos["entry_time"], "exit_time": now_ts,
                         "entry_hour_utc": pos["entry_hour"], "type": "BUY",
+                        "agent": pos["agent"], "regime": pos.get("market_regime", "SIDEWAYS"),
                         "entry": round(pos["entry"], 2), "exit": round(eff_exit, 2),
                         "pnl": round(net_pnl, 2), "reason": exit_reason
                     })
@@ -227,6 +228,7 @@ def run_modular_engine():
                         "entry_str": pos["entry_str"], "exit_str": dt.strftime("%Y-%m-%d %H:%M"),
                         "entry_time": pos["entry_time"], "exit_time": now_ts,
                         "entry_hour_utc": pos["entry_hour"], "type": "SELL",
+                        "agent": pos["agent"], "regime": pos.get("market_regime", "SIDEWAYS"),
                         "entry": round(pos["entry"], 2), "exit": round(eff_exit, 2),
                         "pnl": round(net_pnl, 2), "reason": exit_reason
                     })
@@ -242,6 +244,18 @@ def run_modular_engine():
                 atr_val = float(bar["atr"])
                 move_open = abs(float(bar["close"]) - day_open) / atr_val if (day_open is not None and atr_val > 0) else 0.0
                 pos = guard.build_order(sig_dir, agent_tag, float(bar["close"]), atr_val, dt, now_ts, is_conv, utc_hour=utc_hour, move_from_open_atr=move_open)
+                if pos is not None:
+                    chop_now = float(bar.get("chop", 50.0))
+                    h1_b = float(bar["h1_close"]) >= float(bar["h1_ema"])
+                    h4_b = float(bar["h4_close"]) >= float(bar["h4_ema"])
+                    if chop_now >= 50.0:
+                        pos["market_regime"] = "SIDEWAYS"
+                    elif h1_b and h4_b:
+                        pos["market_regime"] = "UPTREND"
+                    elif (not h1_b) and (not h4_b):
+                        pos["market_regime"] = "DOWNTREND"
+                    else:
+                        pos["market_regime"] = "SIDEWAYS"
 
         if i % 4 == 0:
             equity_curve.append({"time": now_ts, "value": round(guard.equity, 2)})
@@ -258,8 +272,7 @@ def run_modular_engine():
     buys = [t for t in closed_trades if t["type"] == "BUY"]
     sells = [t for t in closed_trades if t["type"] == "SELL"]
 
-    def agent_stats(keywords):
-        sub = [t for t in closed_trades if any(k in t["reason"] for k in keywords)]
+    def calc_group_stats(sub):
         w = [t for t in sub if t["pnl"] > 0]
         l = [t for t in sub if t["pnl"] <= 0]
         gw = sum(t["pnl"] for t in w)
@@ -271,12 +284,37 @@ def run_modular_engine():
             "pf": round((gw / gl), 2) if gl > 0 else (9.99 if gw > 0 else 0.0)
         }
 
+    def agent_stats(keywords):
+        sub = [t for t in closed_trades if any(k in t["reason"] for k in keywords)]
+        return calc_group_stats(sub)
+
     agents_breakdown = {
         "VWAP_PB": agent_stats(["SWEET"]),
         "EV_PB": agent_stats(["SOUR", "SALTY"]),
         "OI_BOOSTED": agent_stats(["TP1+"]),
         "ROLLOVER": agent_stats(["FLIP-", "GAP-", "Rollover", "Weekend-Close", "Wknd"])
     }
+
+    strategy_names = ["SWEET-VWAP", "SWEET-TK", "SOUR-TRAP", "SALTY-MR", "FLIP-SESSION", "GAP-DAILY"]
+    strategies_breakdown = {
+        name: calc_group_stats([t for t in closed_trades if t.get("agent") == name])
+        for name in strategy_names
+    }
+
+    regimes_breakdown = {
+        "UPTREND": calc_group_stats([t for t in closed_trades if t.get("regime") == "UPTREND"]),
+        "DOWNTREND": calc_group_stats([t for t in closed_trades if t.get("regime") == "DOWNTREND"]),
+        "SIDEWAYS": calc_group_stats([t for t in closed_trades if t.get("regime") == "SIDEWAYS"]),
+    }
+
+    monthly_map = {}
+    for t in closed_trades:
+        ym = t["entry_str"][:7]
+        monthly_map.setdefault(ym, []).append(t)
+    monthly_pnl = [
+        {"month": ym, **calc_group_stats(monthly_map[ym])}
+        for ym in sorted(monthly_map.keys())
+    ]
 
     win_rate = (len(winners) / total_trades * 100.0) if total_trades > 0 else 0.0
     gross_win = sum(t["pnl"] for t in winners)
@@ -374,6 +412,9 @@ def run_modular_engine():
             "buy_pnl": round(sum(t["pnl"] for t in buys), 2),
             "sell_pnl": round(sum(t["pnl"] for t in sells), 2),
             "agents": agents_breakdown,
+            "strategies": strategies_breakdown,
+            "regimes": regimes_breakdown,
+            "monthly_pnl": monthly_pnl,
             "recent_trades": closed_trades[-20:][::-1],
             "equity_curve": equity_curve
         },
