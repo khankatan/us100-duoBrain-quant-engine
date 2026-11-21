@@ -40,7 +40,7 @@ def evaluate_signals(bar, prev, asian_high, asian_low, asian_bars, trades_today=
 
     # 1. โหมดรสหวาน (SWEET)
     if flavor == "SWEET":
-        if utc_hour in [6, 8]:
+        if utc_hour in [6, 8, 10]:
             return None, ""
         if is_dead_zone_utc and not has_oi:
             return None, ""
