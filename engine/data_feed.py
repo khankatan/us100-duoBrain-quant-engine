@@ -6,7 +6,7 @@ import pandas as pd
 def to_unix_seconds(series):
     return (pd.to_datetime(series, utc=True).astype("int64") // 10**9).astype(int)
 
-def load_ftmo_file(filepath: str, mt5_server_tz: str = "Europe/Athens") -> pd.DataFrame:
+def load_ftmo_file(filepath: str) -> pd.DataFrame:
     """อ่านไฟล์ ZIP (หรือ CSV) ของ FTMO MT5 อัตโนมัติ (ใช้เฉพาะ OHLC ไม่ใช้ Volume)"""
     def _read_csv_robust(file_obj):
         for enc in ("utf-8-sig", "utf-16", "latin1"):
@@ -37,13 +37,21 @@ def load_ftmo_file(filepath: str, mt5_server_tz: str = "Europe/Athens") -> pd.Da
     # ล้างช่องว่างและเครื่องหมาย < > ออกจากหัวตาราง
     df.columns = [c.strip().strip("<>").lower() for c in df.columns]
 
-    # แปลงเวลา Server MT5 (Europe/Athens) เป็น UTC+0
+    # แปลงเวลา Server MT5 (FTMO = NY+7h) -> True UTC -> Australia/Sydney Clock (ตรงกับไฟล์ 58)
     if "date" in df.columns and "time" in df.columns:
         dt_series = pd.to_datetime(df["date"].astype(str) + " " + df["time"].astype(str))
-        df["datetime"] = (
-            dt_series
-            .dt.tz_localize(mt5_server_tz, ambiguous="NaT", nonexistent="shift_forward")
+        ny_naive = dt_series - pd.Timedelta(hours=7)
+        true_utc = (
+            ny_naive
+            .dt.tz_localize("America/New_York", ambiguous="NaT", nonexistent="shift_forward")
             .dt.tz_convert("UTC")
+        )
+        # ปรับนาฬิกาให้ตรงกับฐานเวลาของไฟล์ 58 (Australia/Sydney labeled as UTC)
+        df["datetime"] = (
+            true_utc
+            .dt.tz_convert("Australia/Sydney")
+            .dt.tz_localize(None)
+            .dt.tz_localize("UTC")
         )
         df = df.dropna(subset=["datetime"]).reset_index(drop=True)
     else:
