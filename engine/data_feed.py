@@ -46,6 +46,7 @@ def load_ftmo_file(filepath: str) -> pd.DataFrame:
             .dt.tz_localize("America/New_York", ambiguous="NaT", nonexistent="shift_forward")
             .dt.tz_convert("UTC")
         )
+        df["true_utc"] = true_utc
         # ปรับนาฬิกาให้ตรงกับฐานเวลาของไฟล์ 58 (Australia/Sydney labeled as UTC)
         df["datetime"] = (
             true_utc
@@ -53,20 +54,22 @@ def load_ftmo_file(filepath: str) -> pd.DataFrame:
             .dt.tz_localize(None)
             .dt.tz_localize("UTC")
         )
-        df = df.dropna(subset=["datetime"]).reset_index(drop=True)
+        df = df.dropna(subset=["datetime", "true_utc"]).reset_index(drop=True)
     else:
         time_col = next((c for c in ["datetime", "timestamp", "time", "date"] if c in df.columns), None)
         if time_col is None:
             raise ValueError(f"ไม่พบคอลัมน์เวลาในไฟล์ (คอลัมน์ที่มี: {list(df.columns)})")
         df["datetime"] = pd.to_datetime(df[time_col], utc=True)
+        df["true_utc"] = df["datetime"]
 
     for col in ["open", "high", "low", "close"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    df = df[["datetime", "open", "high", "low", "close"]].dropna()
+    df = df[["datetime", "true_utc", "open", "high", "low", "close"]].dropna()
     df["ts"] = to_unix_seconds(df["datetime"])
     df = df.drop_duplicates(subset=["ts"]).sort_values("ts").reset_index(drop=True)
-    df = df[df["datetime"].dt.dayofweek < 5].reset_index(drop=True)
+    # ตัดเฉพาะวันเสาร์-อาทิตย์ตามเวลาตลาดจริง (true_utc) เพื่อไม่ให้ตัดคืนวันศุกร์ทิ้ง
+    df = df[df["true_utc"].dt.dayofweek < 5].reset_index(drop=True)
     return df
 
 def fetch_market_data(custom_file_path=None):
