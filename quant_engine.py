@@ -93,8 +93,9 @@ def run_modular_engine():
 
         guard.on_new_bar(bar_date)
 
-        friday_close_now = must_close_for_weekend(dt)
-        daily_rollover_now = (int(bar["true_utc"]) == 3 and int(bar["true_utc"]) >= 0)
+        true_dt = bar["true_utc"].to_pydatetime() if "true_utc" in bar else dt
+        friday_close_now = must_close_for_weekend(true_dt)
+        daily_rollover_now = (int(bar["thai_hour"]) == 3 and int(bar["thai_minute"]) >= 0)
         is_late_night = (t_mins >= 23 * 60 + 30) or (t_mins < 3 * 60)
 
         if pos is not None:
@@ -295,7 +296,6 @@ def run_modular_engine():
     atr_now = float(curr["atr"]) if not pd.isna(curr["atr"]) else 1.0
     move_open_now = abs(entry_now - day_open) / atr_now if (day_open is not None and atr_now > 0) else 0.0
 
-    # ยึดผลลัพธ์จากตัวแปร pos ในลูป Backtest 100% (ตรงกับ all_trades.csv ทุกไม้ ไม่คำนวณซ้ำซ้อน)
     if pos is not None:
         is_fresh_entry = (pos["entry_time"] == int(curr["ts"]))
         if is_fresh_entry:
