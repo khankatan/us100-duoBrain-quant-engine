@@ -92,7 +92,7 @@ def evaluate_signals(bar, prev, asian_high, asian_low, asian_bars, trades_today=
     # 2. โหมดรสเปรี้ยว (SOUR)
     if flavor == "SOUR":
         move_open = abs(close_p - day_open) / atr_val if (day_open is not None and atr_val > 0) else 0.0
-        if (chop_v >= 40.5) and (move_open <= 5.5) and ((not is_crisis_vol) or has_oi):
+        if (chop_v >= 43.0) and (move_open <= 5.5) and ((not is_crisis_vol) or has_oi):
             hemi = info.get("hemisphere", "L")
             if hemi == "L":
                 if info["swept_low"] and h4_bull and (close_p > open_p) and (vwrsi_v > prev_rsi) and (30 <= vwrsi_v <= 52):
