@@ -108,7 +108,7 @@ def evaluate_signals(bar, prev, asian_high, asian_low, asian_bars, trades_today=
 
     # 3. โหมดรสเค็ม (SALTY)
     if flavor == "SALTY":
-        if (not is_crisis_vol) and (utc_hour not in [6, 11]):
+        if (not is_crisis_vol) and (utc_hour in [2, 3, 4, 5, 14]):
             if h4_bull and (info["prev_z"] <= -1.55) and (close_p > open_p) and (vwrsi_v > prev_rsi) and (vwrsi_v <= 45):
                 return "BUY", "SALTY-MR"
             if h4_bear and (info["prev_z"] >= 1.55) and (close_p < open_p) and (vwrsi_v < prev_rsi) and (vwrsi_v >= 55):
