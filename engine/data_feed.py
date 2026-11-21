@@ -22,8 +22,29 @@ def fetch_twelvedata_page(api_key, end_date_str=None, outputsize=5000):
         df_p[col] = pd.to_numeric(df_p[col], errors="coerce")
     return df_p[["datetime", "open", "high", "low", "close"]].dropna()
 
-def fetch_market_data():
+def fetch_market_data(offline_backtest=True):
+    """
+    ตั้งค่า offline_backtest=True เมื่อต้องการรัน Backtest บนไฟล์ FTMO 2 ปีล้วนๆ
+    หากรัน Live บน VPS ให้ส่งค่า offline_backtest=False
+    """
     os.makedirs(os.path.dirname(HISTORY_CSV), exist_ok=True)
+    
+    # 1. โหมดอ่านจากไฟล์ FTMO Local CSV โดยตรง (แนะนำสำหรับ Backtest 2 ปี)
+    if offline_backtest and os.path.exists(HISTORY_CSV):
+        old_df = pd.read_csv(HISTORY_CSV)
+        old_df["datetime"] = pd.to_datetime(old_df["datetime"], utc=True)
+        for col in ["open", "high", "low", "close"]:
+            old_df[col] = pd.to_numeric(old_df[col], errors="coerce")
+        
+        combined = old_df[["datetime", "open", "high", "low", "close"]].dropna()
+        combined["ts"] = to_unix_seconds(combined["datetime"])
+        combined = combined.drop_duplicates(subset=["ts"]).sort_values("ts").reset_index(drop=True)
+        combined = combined[combined["datetime"].dt.dayofweek < 5].reset_index(drop=True)
+        
+        source_name = str(old_df["source"].iloc[-1]) if "source" in old_df.columns else "FTMO Local History"
+        return combined, source_name
+
+    # 2. โหมดดึงข้อมูล Live มาต่อท้าย (สำหรับรันจริงบน VPS)
     api_key = os.getenv("TWELVE_DATA_KEY", "").strip()
     new_df = pd.DataFrame()
     source_name = "Yahoo Finance (Free Feed)"
@@ -38,7 +59,6 @@ def fetch_market_data():
 
     if api_key:
         try:
-            # หากมีประวัติครบ 18,000 แท่งแล้ว ให้ดึงเฉพาะ 30 แท่งล่าสุดเพื่อลดดีเลย์และประหยัดโควตา API
             if existing_rows >= 18000:
                 df_page = fetch_twelvedata_page(api_key, None, outputsize=30)
                 if not df_page.empty:
@@ -48,7 +68,6 @@ def fetch_market_data():
                 pages_to_fetch = 5
                 all_pages = []
                 end_cursor = None
-
                 for p in range(pages_to_fetch):
                     df_page = fetch_twelvedata_page(api_key, end_cursor, outputsize=5000)
                     if df_page.empty:
@@ -57,8 +76,7 @@ def fetch_market_data():
                     oldest_dt = df_page["datetime"].min()
                     end_cursor = (oldest_dt - pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
                     if p < pages_to_fetch - 1:
-                        time.sleep(8.5)  # หน่วง 8.5 วินาที ป้องกันเกินโควตา 8 ครั้ง/นาทีของ Twelve Data
-
+                        time.sleep(8.5)
                 if all_pages:
                     new_df = pd.concat(all_pages, ignore_index=True)
                     source_name = "TwelveData Spot XAU/USD (1-Year Deep History)"
@@ -86,7 +104,9 @@ def fetch_market_data():
     if os.path.exists(HISTORY_CSV):
         try:
             old_df = pd.read_csv(HISTORY_CSV)
-            if "source" in old_df.columns and "TwelveData" in str(old_df["source"].iloc[-1]) and "TwelveData" in source_name:
+            old_src = str(old_df["source"].iloc[-1]) if "source" in old_df.columns else ""
+            # อนุญาตให้ต่อท้ายได้ทั้งฐานเดิมที่เป็น TwelveData และ FTMO
+            if ("TwelveData" in old_src or "FTMO" in old_src) and ("TwelveData" in source_name):
                 old_df["datetime"] = pd.to_datetime(old_df["datetime"], utc=True)
                 old_df["ts"] = to_unix_seconds(old_df["datetime"])
                 combined = pd.concat([old_df[["datetime", "ts", "open", "high", "low", "close"]], new_df], ignore_index=True)
