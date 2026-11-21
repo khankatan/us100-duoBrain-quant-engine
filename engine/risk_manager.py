@@ -86,10 +86,10 @@ class RiskGuard:
         return False
 
     def get_active_risk_pct(self, is_macro_conv=False, agent_tag="", atr_val=0.0, utc_hour=0, move_from_open_atr=0.0):
-        is_crisis_vol = (atr_val > 11.5)
+        is_crisis_vol = (atr_val > 12.4)
 
         if "FLIP-" in agent_tag:
-            base = 0.70  # คง Risk เต็ม 0.70% แม้ ATR สูง เพราะ FLIP-SESSION ทำผลงานได้ยอดเยี่ยม
+            base = 0.70
         elif "GAP-" in agent_tag:
             base = 0.12 if (is_crisis_vol or move_from_open_atr > 4.5 or utc_hour >= 17) else 0.30
         else:
@@ -167,9 +167,8 @@ class RiskGuard:
                     self.consecutive_losses = 0
             return
 
-        if "BE+" in exit_reason:
+        if "BE+" in exit_reason or "StepLock" in exit_reason:
             if net_pnl > 0:
-                # ปลดล็อกให้สามารถเปิดไม้ที่ 2 ได้หลังปิด BE+ 
                 self.today_be_locked = False
                 self.tp_wins_today += 1
                 if (not is_gap_agent) and net_pnl > 20.0:
