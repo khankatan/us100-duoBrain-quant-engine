@@ -12,17 +12,22 @@ def evaluate_gap_filler(bar, prev, trades_today=0, lon_open=None, lon_close=None
 
     h1_bull = float(bar["h1_close"]) >= float(bar["h1_ema"])
     h1_bear = float(bar["h1_close"]) < float(bar["h1_ema"])
+    h4_bull = float(bar["h4_close"]) >= float(bar["h4_ema"])
+    h4_bear = float(bar["h4_close"]) < float(bar["h4_ema"])
 
-    # 1. FLIP-SESSION: จบที่ 15:45 (ตัดช่วง 16:00-16:30 ที่ขาดทุนหนักทั้ง 2 ปีออก)
+    strong_uptrend = h1_bull and h4_bull and (chop_bar < 50.0)
+    strong_downtrend = h1_bear and h4_bear and (chop_bar < 50.0)
+
+    # 1. FLIP-SESSION: จบที่ 15:45 และห้ามสวนเทรนด์แข็งแกร่ง (H1+H4 เรียงตัว & CHOP < 50)
     if (13 * 60 + 30) <= utc_mins <= (15 * 60 + 45) and chop_bar < 54.0:
         if lon_open is not None and lon_close is not None and atr_val > 0:
             lon_move = (lon_close - lon_open) / atr_val
-            if lon_move >= 1.0 and close_p < vwap_p and float(prev["close"]) >= float(prev["vwap"]) and close_p < open_p:
+            if (not strong_uptrend) and lon_move >= 1.0 and close_p < vwap_p and float(prev["close"]) >= float(prev["vwap"]) and close_p < open_p:
                 return "SELL", "FLIP-SESSION"
-            if lon_move <= -1.0 and close_p > vwap_p and float(prev["close"]) <= float(prev["vwap"]) and close_p > open_p:
+            if (not strong_downtrend) and lon_move <= -1.0 and close_p > vwap_p and float(prev["close"]) <= float(prev["vwap"]) and close_p > open_p:
                 return "BUY", "FLIP-SESSION"
 
-    # 2. GAP-DAILY: เริ่ม 16:00 - 17:45 และปลดล็อกวัน ATR สูงเพื่อให้ออกไม้ครบทุกวัน (คุม Risk 0.12% ใน risk_manager)
+    # 2. GAP-DAILY: เริ่ม 16:00 - 17:45 เก็บตกวันที่ยังไม่มีไม้ (คุม Risk Micro-Lot 0.10% ใน risk_manager)
     if trades_today == 0 and (16 * 60 + 0) <= utc_mins <= (17 * 60 + 45):
         if h1_bull and close_p >= vwap_p and close_p > open_p:
             return "BUY", "GAP-DAILY"
