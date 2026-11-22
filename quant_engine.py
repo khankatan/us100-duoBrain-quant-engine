@@ -40,7 +40,7 @@ def must_close_for_weekend(utc_dt):
     return False
 
 def run_modular_engine():
-    df, source_name = fetch_market_data("data/xauusd_m15_history.zip")
+    df, source_name = fetch_market_data("data/US100.cash_M15_202501020100_202611202345.zip")
     df = compute_all_features(df)
     df = fetch_macro_oi_and_dxy(df)
 
