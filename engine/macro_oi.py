@@ -55,8 +55,8 @@ def fetch_macro_oi_and_dxy(m15_df):
         return df
 
     try:
-        gc = yf.Ticker("GC=F").history(period="3y", interval="1d")
-        dxy = yf.Ticker("DX-Y.NYB").history(period="3y", interval="1d")
+        gc = yf.Ticker("NQ=F").history(period="3y", interval="1d")
+        dxy = yf.Ticker("^TNX").history(period="3y", interval="1d")
 
         if gc.empty:
             return df
