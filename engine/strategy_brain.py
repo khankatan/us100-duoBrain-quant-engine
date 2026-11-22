@@ -35,7 +35,7 @@ def evaluate_signals(bar, prev, asian_high, asian_low, asian_bars, trades_today=
 
     has_oi = bool(info.get("has_macro_expansion", False))
     is_dead_zone_utc = (5 <= utc_hour <= 7) or (utc_hour == 12)
-    is_crisis_vol = (atr_val > 12.4)
+    is_crisis_vol = (atr_val > 80)
     chop_v = float(info.get("chop", 50.0))
 
     # 1. โหมดรสหวาน (SWEET)
